@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}Iconik Credentials{% endblock %}
+{% block body %}
+<h2>Iconik Credentials</h2>
+<form action="" method=post>
+    {% if error %}
+    <p class=error><strong>Error:</strong> {{ error }}
+        {% endif %}
+    <p>
+        <input placeholder="App ID" type="text" name="username" value="{{ app_id }}" class=urlinput/><br><br>
+        <input placeholder="Auth Token" type="text" name="password" value="{{ auth_token }}" class=urlinput/><br><br>
+        <input type=submit value="Update credentials">
+    </p>
+</form>
+{% endblock %}
