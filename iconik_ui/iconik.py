@@ -1,4 +1,5 @@
 import os
+import re
 import urllib.parse
 from werkzeug.wrappers import Request, Response
 from werkzeug.routing import Map, Rule
@@ -7,6 +8,10 @@ from werkzeug.wsgi import SharedDataMiddleware
 from werkzeug.utils import redirect
 
 from jinja2 import Environment, FileSystemLoader
+
+
+CONFIG_FILE_PATH = '/usr/local/cantemo/iconik_storage_gateway/config.ini'
+CONFIG_FILE_PATH = '/Users/waqarahmed/OneDrive/work/ixsystems/codes/iconik_ui/sample_config.ini'
 
 
 def get_hostname(url):
@@ -22,11 +27,43 @@ class IconikApp(object):
 
         self.url_map = Map([
             Rule('/', endpoint='index'),
+            Rule('/update_credentials', endpoint='update_credentials'),
+            Rule('/credential_success', endpoint='credential_success'),
         ])
 
     def on_index(self, request):
-        error, url = None, ''
-        return self.render_template('index.html', error=error, url=url)
+        return self.render_template('index.html')
+
+    def get_config_contents(self):
+        with open(CONFIG_FILE_PATH, 'r') as f:
+            return f.read()
+
+    def update_config_contents(self, data):
+        with open(CONFIG_FILE_PATH, 'w') as f:
+            f.write(data)
+
+    def on_credential_success(self, request):
+        return self.render_template('credential_success.html')
+
+    def on_update_credentials(self, request):
+        if request.method == 'POST':
+            config = self.get_config_contents()
+            for key, value in {
+                'app-id': request.form['app_id'],
+                'auth-token': request.form['auth_token'],
+                'storage-id': request.form['storage_id']
+            }.items():
+                config = re.sub(
+                    fr'({key}.*=[\t ]*)(.*)',
+                    fr'\1 {value}',
+                    config
+                )
+
+            self.update_config_contents(config)
+            return redirect('credential_success')
+
+        else:
+            return self.error_404()
 
     def error_404(self):
         response = self.render_template('404.html')
