@@ -20,6 +20,8 @@ def get_hostname(url):
 
 class IconikApp(object):
 
+    credential_keys = ['app-id', 'auth-token', 'storage-id']
+
     def __init__(self):
         template_path = os.path.join(os.path.dirname(__file__), 'templates')
         self.jinja_env = Environment(loader=FileSystemLoader(template_path), autoescape=True)
@@ -32,7 +34,15 @@ class IconikApp(object):
         ])
 
     def on_index(self, request):
-        return self.render_template('index.html')
+        config = self.get_config_contents()
+        keys_present = len(list(filter(
+            lambda v: v and v[0],
+            map(
+                lambda key: re.findall(fr'{key}.*=[\t ]*(.*)', config),
+                self.credential_keys
+            )
+        ))) == 3
+        return self.render_template('index.html', credentials_exist=keys_present)
 
     def get_config_contents(self):
         with open(CONFIG_FILE_PATH, 'r') as f:
@@ -48,14 +58,10 @@ class IconikApp(object):
     def on_update_credentials(self, request):
         if request.method == 'POST':
             config = self.get_config_contents()
-            for key, value in {
-                'app-id': request.form['app_id'],
-                'auth-token': request.form['auth_token'],
-                'storage-id': request.form['storage_id']
-            }.items():
+            for key, value in {k: request.form[k.replace('-', '_')] for k in self.credential_keys}.items():
                 config = re.sub(
-                    fr'({key}.*=[\t ]*)(.*)',
-                    fr'\1 {value}',
+                    fr'({key}.*)=[\t ]*(.*)',
+                    fr'\1= {value}',
                     config
                 )
 
